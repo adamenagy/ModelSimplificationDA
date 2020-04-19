@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Addin Type="Plugin">
+  <ClassId>{2a6a80c4-ac7c-4ba0-9552-5fccfbf00366}</ClassId>
+  <ClientId>{2a6a80c4-ac7c-4ba0-9552-5fccfbf00366}</ClientId>
+  <DisplayName>ShrinkWrapPlugin</DisplayName>
+  <Description>a ShrinkWrapPlugin</Description>
+  <Assembly>ShrinkWrapPlugin.dll</Assembly>
+</Addin>

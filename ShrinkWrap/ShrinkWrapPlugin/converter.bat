@@ -1,0 +1,1 @@
+%~dp0FbxConverter.exe outputObjZip/output.obj output.fbx /sffOBJ /dffFBX

@@ -1,0 +1,88 @@
+{
+  "assemblyPath": "input/Engine MKII/Engine MKII.iam",
+  "projectPath": "input/Engine MKII/Engine MKII.ipj",
+  "SuppressLinkToFile": true,
+  "LOD":  "Master",
+  "CreateIndependentBodiesOnFailedBoolean": {
+    "type": "boolean",
+    "value": true
+  },
+  "DeriveStyle": {
+    "options": [
+      "kDeriveAsSingleBodyWithSeams",
+      "kDeriveAsSingleBodyNoSeams",
+      "kDeriveAsMultipleBodies",
+      "kDeriveAsWorkSurface"
+    ],
+    "type": "enum",
+    "value": "kDeriveAsSingleBodyWithSeams"
+  },
+  "RemoveInternalParts": {
+    "type": "boolean",
+    "value": true
+  },
+  "RemoveAllInternalVoids": {
+    "type": "boolean",
+    "value": true
+  },
+  "RemoveHolesDiameterRange": {
+    "type": "number",
+    "value": 2
+  },
+  "RemoveHolesStyle": {
+    "options": [
+      "kShrinkwrapRemoveNone",
+      "kShrinkwrapRemoveAll",
+      "kShrinkwrapRemoveByRange"
+    ],
+    "type": "enum",
+    "value": "kShrinkwrapRemoveByRange"
+  },
+  "RemoveFilletsRadiusRange": {
+    "type": "number",
+    "value": 2
+  },
+  "RemoveFilletsStyle": {
+    "options": [
+      "kShrinkwrapRemoveNone",
+      "kShrinkwrapRemoveAll",
+      "kShrinkwrapRemoveByRange"
+    ],
+    "type": "enum",
+    "value": "kShrinkwrapRemoveByRange"
+  },
+  "RemoveChamfersDistanceRange": {
+    "type": "number",
+    "value": 2
+  },
+  "RemoveChamfersStyle": {
+    "options": [
+      "kShrinkwrapRemoveNone",
+      "kShrinkwrapRemoveAll",
+      "kShrinkwrapRemoveByRange"
+    ],
+    "type": "enum",
+    "value": "kShrinkwrapRemoveByRange"
+  },
+  "RemovePartsSize": {
+    "type": "number",
+    "value": 1
+  },
+  "RemovePartsBySize": {
+    "type": "boolean",
+    "value": true
+  },
+  "RemovePocketsMaxFaceLoopRange": {
+    "type": "number",
+    "value": 2
+  },
+  "RemovePocketsStyle": {
+    "options": [
+      "kShrinkwrapRemoveNone",
+      "kShrinkwrapRemoveAll",
+      "kShrinkwrapRemoveByRange"
+    ],
+    "type": "enum",
+    "value": "kShrinkwrapRemoveByRange"
+  }
+}

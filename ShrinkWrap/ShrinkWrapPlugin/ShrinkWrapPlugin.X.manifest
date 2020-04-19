@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <assemblyIdentity name="ShrinkWrapPlugin" version="1.0.0.0"></assemblyIdentity>
+  <clrClass clsid="{2a6a80c4-ac7c-4ba0-9552-5fccfbf00366}" progid="ShrinkWrapPlugin.PluginServer" threadingModel="Both" name="ShrinkWrapPlugin.PluginServer"></clrClass>
+  <file name="ShrinkWrapPlugin.dll" hashalg="SHA1"></file>
+</assembly>
