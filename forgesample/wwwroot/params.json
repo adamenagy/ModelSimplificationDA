@@ -1,0 +1,84 @@
+{
+  "CreateIndependentBodiesOnFailedBoolean": {
+    "type": "boolean",
+    "value": true
+  },
+  "DeriveStyle": {
+    "options": [
+      "kDeriveAsSingleBodyWithSeams",
+      "kDeriveAsSingleBodyNoSeams",
+      "kDeriveAsMultipleBodies",
+      "kDeriveAsWorkSurface"
+    ],
+    "type": "enum",
+    "value": "kDeriveAsSingleBodyWithSeams"
+  },
+  "RemoveInternalParts": {
+    "type": "boolean",
+    "value": true
+  },
+  "RemoveAllInternalVoids": {
+    "type": "boolean",
+    "value": true
+  },
+  "RemoveHolesStyle": {
+    "options": [
+      "kShrinkwrapRemoveNone",
+      "kShrinkwrapRemoveAll",
+      "kShrinkwrapRemoveByRange"
+    ],
+    "type": "enum",
+    "value": "kShrinkwrapRemoveByRange"
+  },
+  "RemoveHolesDiameterRange": {
+    "type": "number",
+    "value": 2
+  },
+  "RemoveFilletsStyle": {
+    "options": [
+      "kShrinkwrapRemoveNone",
+      "kShrinkwrapRemoveAll",
+      "kShrinkwrapRemoveByRange"
+    ],
+    "type": "enum",
+    "value": "kShrinkwrapRemoveByRange"
+  },
+  "RemoveFilletsRadiusRange": {
+    "type": "number",
+    "value": 2
+  },
+  "RemoveChamfersStyle": {
+    "options": [
+      "kShrinkwrapRemoveNone",
+      "kShrinkwrapRemoveAll",
+      "kShrinkwrapRemoveByRange"
+    ],
+    "type": "enum",
+    "value": "kShrinkwrapRemoveByRange"
+  },
+  "RemoveChamfersDistanceRange": {
+    "type": "number",
+    "value": 2
+  },
+  "RemovePocketsStyle": {
+    "options": [
+      "kShrinkwrapRemoveNone",
+      "kShrinkwrapRemoveAll",
+      "kShrinkwrapRemoveByRange"
+    ],
+    "type": "enum",
+    "value": "kShrinkwrapRemoveByRange"
+  },
+  "RemovePocketsMaxFaceLoopRange": {
+    "type": "number",
+    "value": 2
+  },
+  "RemovePartsBySize": {
+    "type": "boolean",
+    "value": true
+  },
+  "RemovePartsSize": {
+    "type": "number",
+    "value": 1
+  }
+}
