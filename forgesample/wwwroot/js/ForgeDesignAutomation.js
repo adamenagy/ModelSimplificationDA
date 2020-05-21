@@ -369,8 +369,7 @@ function startConnection(onReady) {
         let data = JSON.parse(message)
         let viewerNumber = (data.isSimplified) ? 2 : 1
         let elementId = "forgeViewer" + viewerNumber
-        await launchViewer(data.urn, elementId)
-
         showProgressIcon(viewerNumber, false)
+        launchViewer(data.urn, elementId)
     });
 }
