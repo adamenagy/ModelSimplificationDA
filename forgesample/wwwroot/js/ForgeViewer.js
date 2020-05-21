@@ -2,9 +2,8 @@
 var counter = 0;
 
 function launchViewer(urn, elementId) {
-    Autodesk.Viewing.HTTP_REQUEST_HEADERS ={
-        "If-Modified-Since": "Sat, 29 Oct 1994 19:43:31 GMT"
-    };
+    // To avoid showing previous versions of the model from the cache
+    Autodesk.Viewing.endpoint.HTTP_REQUEST_HEADERS['If-Modified-Since'] = "Sat, 29 Oct 1994 19:43:31 GMT"
 
     return new Promise(async (resolve, reject) => {
         var options = {
