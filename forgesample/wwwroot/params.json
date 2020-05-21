@@ -1,4 +1,19 @@
 {
+  "ProjectFile": {
+    "type": "text",
+    "value": "main.ipj",
+    "placeholder": "main.ipj (optional)"
+  },
+  "MainAssembly": {
+    "type": "text",
+    "value": "main.iam",
+    "placeholder": "main.iam"
+  },
+  "LevelOfDetail": {
+    "type": "text",
+    "value": "Master",
+    "placeholder": "Master (optional)"
+  },
   "CreateIndependentBodiesOnFailedBoolean": {
     "type": "boolean",
     "value": true

@@ -72,22 +72,25 @@ namespace ShrinkWrapPlugin
 
             string currentDir = System.IO.Directory.GetCurrentDirectory();
             LogTrace("Current Dir = " + currentDir);
+            string filesDir = System.IO.Path.Combine(currentDir, "files");
+            LogTrace("Files Dir = " + filesDir);
 
             var map = CreateEnumMap();
 
             JObject parameters = JObject.Parse(System.IO.File.ReadAllText("params.json"));
 
-            string assemblyPath = parameters.GetValue("assemblyPath").Value<string>();
+            string assemblyName = parameters.GetValue("assemblyName").Value<string>();
 
             using (new HeartBeat())
             {
-                if (parameters.ContainsKey("projectPath"))
+                if (parameters.ContainsKey("projectName"))
                 {
-                    string projectPath = parameters.GetValue("projectPath").Value<string>();
-                    string fullProjectPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(currentDir, projectPath));
-                    LogTrace("fullProjectPath = " + fullProjectPath);
-                    if (System.IO.File.Exists(fullProjectPath))
+                    string projectName = parameters.GetValue("projectName").Value<string>();
+                    string [] projectFileNames = System.IO.Directory.GetFiles(filesDir, projectName, System.IO.SearchOption.AllDirectories);
+                    if (projectFileNames.Length > 0)
                     {
+                        string fullProjectPath = projectFileNames[0];
+                        LogTrace("fullProjectPath = " + fullProjectPath);
                         LogTrace("Loading and activating project");
                         DesignProject dp = inventorApplication.DesignProjectManager.DesignProjects.AddExisting(fullProjectPath);
                         dp.Activate();
@@ -98,17 +101,28 @@ namespace ShrinkWrapPlugin
                     }
                 }
 
-                string fullAssemblyPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(currentDir, assemblyPath));
-                LogTrace("fullAssemblyPath = " + fullAssemblyPath);
-                if (!System.IO.File.Exists(fullAssemblyPath))
+                string [] assemblyFileNames = System.IO.Directory.GetFiles(filesDir, assemblyName, System.IO.SearchOption.AllDirectories);
+                if (assemblyFileNames.Length < 1)
                 {
                     LogTrace("Did not find assembly");
                     return;
                 }
 
-                if (parameters.ContainsKey("LOD"))
+                string fullAssemblyPath = assemblyFileNames[0];
+                LogTrace("fullAssemblyPath = " + fullAssemblyPath);
+
+                if (parameters.ContainsKey("LeveOfDetail"))
                 {
-                    fullAssemblyPath += "<" + parameters.GetValue("LOD").Value<string>() + ">";
+                    string[] LODs = inventorApplication.FileManager.GetLevelOfDetailRepresentations(fullAssemblyPath);
+                    LogTrace("Available LODs:");
+                    foreach (var item in LODs)
+                    {
+                        LogTrace(item);
+                    }
+
+                    string LOD = parameters.GetValue("LeveOfDetail").Value<string>();
+                    LogTrace("Selected LOD: " + LOD);
+                    fullAssemblyPath += "<" + LOD + ">";
                 }
                 LogTrace("fullAssemblyPath = " + fullAssemblyPath);
                 AssemblyDocument asmDoc = inventorApplication.Documents.Open(fullAssemblyPath, true) as AssemblyDocument;
@@ -147,7 +161,7 @@ namespace ShrinkWrapPlugin
                     }
                     if (parameters.ContainsKey("RemoveAllInternalVoids"))
                     {
-                        SWD.RemoveAllInternalVoids = GetValue<bool>(parameters, "RemoveAllInternalVoids");
+                        SWD.RemoveAllInternalVoids = GetValue<bool>(parameters, "RemoveAllInternalVoids"); 
                     }
                     if (parameters.ContainsKey("RemoveHolesDiameterRange"))
                     {

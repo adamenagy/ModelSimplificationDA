@@ -19,19 +19,19 @@
     <script src="/js/ForgeViewer.js"></script>
     <style>
         #outputlog {
-            height: calc(100vh - 475px);
+            height: 100%; /*calc(100vh - 475px);*/
         }
-        #forgeViewer {
+        #forgeViewer1, #forgeViewer2 {
             height: 100%; 
             width: 100%; 
             position: relative; 
             padding: 0px;
             z-index: 0;
         }
-        #rightColumn {
+        #rightColumn, #midColumn {
             height: calc(100vh - 120px);
         }
-        #progressIcon {
+        #progressIcon1, #progressIcon2 {
             font-size: 50px;
             color:white;
             z-index: 3;
@@ -47,19 +47,41 @@
             cursor: pointer; 
             display: none;
         }
-
-        .previewImage {
-            display:block; 
-            width:100px; 
-            position: absolute; 
-            top:0px; 
-            left: 0px; 
-            object-fit: cover;
-            z-index: 2;
+        #optionsContainer {
+            background-color: #eeeeee88;
+            border-color: darkgray;
+            border-style: solid;
+            border-width: 1px;
+            padding: 5px;
+            border-radius: 5px;
+            height: calc(100vh - 500px);
+            overflow: scroll;
+            position: relative;
         }
-        .coverViewer {
-            width: 100%;
+        #fileOptionsContainer {
+            background-color: #eeeeee88;
+            border-color: darkgray;
+            border-style: solid;
+            border-width: 1px;
+            padding: 5px;
+            border-radius: 5px;
+            overflow: scroll;
+            position: relative;
+            display: none;
+        }
+
+        .label {
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            color: black;
+        }
+        .fill {
             height: 100%;
+        }
+        .half {
+            height: 50%;
+            position: relative;
         }
         .glyphicon-spin {
             -webkit-animation: spin 1000ms infinite linear;
@@ -116,18 +138,35 @@
     <!-- End of navbar -->
     <div class="container-fluid" style="margin-top: 70px;">
         <div class="row">
-            <div class="col-sm-4" id="leftColumn">
+            <div class="col-sm-3" id="leftColumn">
+                <label class="form-check-label">Input assembly file (<span id="fileName">default</span>)</label>
+                <br />
+                <input type="file" id="inputFile" style="position: fixed; top: -100px;"></input>
+                <div id="fileOptionsContainer"></div>
+                <button type="button" class="btn btn-default" id="uploadFile">Upload zip file</button>
+                <button type="button" class="btn btn-default" id="translateFile">Translate zip file</button>
+                <br />
+                <br />
+                <label class="form-check-label">Options:</label>
                 <div id="optionsContainer"></div>
-
-                <center><button class="btn btn-primary disabled" id="startWorkitem">Start workitem</button></center><br />
-                <div class="form-group" >
+                <br />
+                <center><button type="button" class="btn btn-primary disabled" id="startWorkitem">Start workitem</button></center>
+            </div>
+            <div class="col-sm-3" id="midColumn">
+                <div class="form-group fill" >
                     <pre id="outputlog" class="form-control"></pre>
                 </div>
             </div>
-            <div class="col-sm-8" id="rightColumn">
-                <div id="forgeViewer" class="form-control">
-                    <img id='previewImage' class="previewImage" src='images/placeholder.png' />
-                    <div id="progressIcon" class="glyphicon glyphicon-refresh glyphicon-spin"></div>
+            <div class="col-sm-6" id="rightColumn">
+                <div class="row half">
+                    <div id="forgeViewer1" class="form-control"></div>
+                    <div class="label">Original</div>
+                    <div id="progressIcon1" class="glyphicon glyphicon-refresh glyphicon-spin"></div>
+                </div>
+                <div class="row half">
+                    <div id="forgeViewer2" class="form-control"></div>
+                    <div class="label">Simplified</div>
+                    <div id="progressIcon2" class="glyphicon glyphicon-refresh glyphicon-spin"></div>
                 </div>
             </div>
         </div>

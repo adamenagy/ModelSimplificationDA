@@ -16,42 +16,142 @@
 // UNINTERRUPTED OR ERROR FREE.
 /////////////////////////////////////////////////////////////////////
 
+const controlPrefix = "control_"
+
 $(document).ready(function () {
     $('#clearAccount').click(clearAccount);
     $('#defineActivityShow').click(defineActivityModal);
     $('#createAppBundleActivity').click(createAppBundleActivity);
     $('#startWorkitem').click(startWorkitem);
+    $('#inputFile').change(uploadFile);
+    $('#uploadFile').click(() => {
+        $('#inputFile').trigger('click')
+    });
+    $('#translateFile').click(translateFile);
 
     showConfigureButton();
 
     startConnection();
 
-    showOptions();
+    showOptions("#optionsContainer", false);
 });
 
-function showOptions() {
-    let optionsContainer = $("#optionsContainer")
+function uploadFile() {
+    console.log("upload file")
+    $.ajax({
+        url: 'api/forge/designautomation/uploadurl?id=' + connectionId,
+        success: function (res) {
+            let signedUrl = res.signedUrl.data.signedUrl
+            var inputFileField = document.getElementById('inputFile');
+            var file = inputFileField.files[0];
+            writeLog(`Uploading input file to signed URL ${signedUrl} ...`);
+            $.ajax({
+                url: signedUrl,
+                data: file,
+                processData: false,
+                contentType: false,
+                type: 'PUT',
+                success: function (res) {
+                    writeLog('File uploaded');
+                    $('#fileName').text(file.name)
+                    showOptions("#fileOptionsContainer", true)
+                    $('#inputFile').html('')
+                },
+                error: function (err, err2) {
+                    console.log(err)
+                    $('#inputFile').html('')
+                }
+            });
+        },
+        error: function (err, err2) {
+            console.log(err)
+            $('#inputFile').html('')
+        }
+    });
+}
+
+function  translateFile() {
+    showProgressIcon(1, true)
+
+    let data = {
+        browerConnectionId: connectionId,
+        rootFilename: $("#control_MainAssembly").val()
+    }
+
+    jQuery.ajax({
+        url: 'api/forge/designautomation/translations',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function (res) {
+            writeLog('Translating file... ');
+        },
+        error: function (res) {
+            writeLog('Failed to start translation');
+        }
+    });    
+}
+
+
+function showOptions(controlId, isFileOptions) {
+    let optionsContainer = $(controlId)
     optionsContainer.html('')
+    optionsContainer.css('display', 'block')
 
     $.getJSON('params.json', function(params) {
         $.each(params, function(param, data) {
-            switch (data.type) {
-                case 'boolean':
-                    optionsContainer.append(createCheckboxControl(param, data))
-                    break;
-
-                case 'enum':
-                    optionsContainer.append(createListControl(param, data))
-                    break;
-
-                case 'number':
-                    optionsContainer.append(createTextControl(param, data))
-                    break;
-            }  
+            if  (isFileOptions) {
+                switch (data.type) {
+                    case 'text':
+                        optionsContainer.append(createTextControl(param, data, false))
+                        break;
+                }
+            } else {
+                switch (data.type) {
+                    case 'boolean':
+                        optionsContainer.append(createCheckboxControl(param, data))
+                        break;
+    
+                    case 'enum':
+                        optionsContainer.append(createListControl(param, data))
+                        break;
+    
+                    case 'number':
+                        optionsContainer.append(createTextControl(param, data, true))
+                        break;
+                }  
+            }
       });
     });
+}
 
-    optionsContainer.append(createCheckboxControl("Test"))
+function getOptions() {
+    let controls = $(`[id^="${controlPrefix}"]`)
+    let options = {}
+    for (let key = 0; key <  controls.length; key++) {
+        let control = controls[key]
+
+        var val = null
+        switch (control.type) {
+            case "checkbox":
+                val = control.checked
+                break
+            case "text":
+                val = parseFloat(control.value)
+                if (isNaN(val))
+                    val = control.value
+                break
+            case "select-one":
+                val = control.value
+                break
+        }
+        
+        options[control.id.replace(controlPrefix, "")] = {
+            value: val
+        }
+    }
+
+    return options
 }
 
 function getDisplayName(name, shift) {
@@ -62,7 +162,7 @@ function getDisplayName(name, shift) {
 }
 
 function createListControl(name, data) {
-    let id = "control_" + name 
+    let id = controlPrefix + name 
 
     let text = ""
     for (let key in data.options) {
@@ -82,7 +182,7 @@ function createListControl(name, data) {
 }
 
 function createCheckboxControl(name, data) {
-    let id = "control_" + name 
+    let id = controlPrefix + name 
 
     let text = 
     `<div class="form-group">
@@ -97,15 +197,19 @@ function createCheckboxControl(name, data) {
     return $(text)
 }
 
-function createTextControl(name) {
-    let id = "control_" + name 
+function createTextControl(name, data, isNumber) {
+    let id = controlPrefix + name 
+
+    let ph = (isNumber) ? "" : "e.g. " + data.placeholder
+    let val = (isNumber) ? data.value : ""
+    let suffix = (isNumber) ? " (cm)" : ""
 
     let text = 
     `<div class="form-group">
         <label for="${id}">
-            ${getDisplayName(name)} (cm)
+            ${getDisplayName(name) + suffix}
         </label>
-        <input class="form-control" type="text" id="${id}" required>
+        <input class="form-control" type="text" id="${id}" value="${val}" placeholder="${ph}" required>
     </div>`
 
     return $(text)
@@ -192,29 +296,16 @@ function uploadSourceFiles(cb) {
     });
 }
 
-function showProgressIcon(show) {
-   $("#progressIcon").css('display', (show) ? 'block' : 'none')
+function showProgressIcon(number, show) {
+   $("#progressIcon" + number).css('display', (show) ? 'block' : 'none')
    $("#startWorkitem").prop('disabled', show)
 }
 
 function startWorkitem() {
-    showProgressIcon(true)
+    showProgressIcon(2, true)
 
-    let useCache = $("#useCache").is(":checked")
-    let width = Math.floor($("#forgeViewer").width())
-    let height = Math.floor($("#forgeViewer").height())
-    var data = {
-        browerConnectionId: connectionId,
-        useCache: useCache,
-        params: {
-            height: `\"${$("#height").val()}\"`,
-            shelfWidth: `\"${$("#shelfWidth").val()}\"`,
-            numberOfColumns: `${$("#numberOfColumns").val()}`
-        },
-        screenshot: {
-            width: width,
-            height: height
-        }
+    let data = {
+        browerConnectionId: connectionId
     };
     writeLog(data);
     startConnection(function () {
@@ -257,30 +348,29 @@ function startConnection(onReady) {
 
     connection.on("onComplete", function (message) {
         writeLog(message);
-    });
-
-    connection.on("onPicture", function (message) {
-        $("#previewImage").attr("src", message)
-
-        writeLog(message);
-    });
-
-    connection.on("onComponents", async function (message) {
-        writeLog(message);
-        let hideLoading = $("#hideLoading").is(":checked")
-
-        console.log('Hide Viewer')
-        if (hideLoading) {
-            $('#previewImage').toggleClass('coverViewer')
+        let data = {
+            browerConnectionId: connectionId,
+            useCache: useCache
         }
+        $.ajax({
+            url: 'api/forge/designautomation/translations',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            type: 'POST',
+            success: function (res) {
+                writeLog(`Workitems started: ${res.pngWorkItemId}, ${res.jsonWorkItemId}, ${res.zipWorkItemId}`);
+            }
+        });
+    });
+
+    connection.on("onTranslated", async function (message) {
+        writeLog(message);
         
-        await launchViewer(JSON.parse(message))
-        console.log('Reveal Viewer')
+        let data = JSON.parse(message)
+        let viewerNumber = (data.isSimplified) ? 2 : 1
+        let elementId = "forgeViewer" + viewerNumber
+        await launchViewer(data.urn, elementId)
 
-        if (hideLoading) {
-            $('#previewImage').toggleClass('coverViewer')
-        }
-
-        showProgressIcon(false)
+        showProgressIcon(viewerNumber, false)
     });
 }
