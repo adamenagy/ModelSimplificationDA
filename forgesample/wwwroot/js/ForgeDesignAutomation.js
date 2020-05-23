@@ -364,24 +364,30 @@ function startConnection(onReady) {
 
     connection.on("onComplete", function (message) {
         writeLog(message);
+        let json = JSON.parse(message)
+        if (json.status === 'success') {
+            let data = {
+                browerConnectionId: connectionId,
+                rootFilename: $("#control_MainAssembly").val(),
+                isSimplified: true
+            }
+            $.ajax({
+                url: 'api/forge/designautomation/translations',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                type: 'POST',
+                success: function () {
+                    writeLog(`Started translating simplified model`);
+                }
+            });
+        } else {
+            writeLog(`Workitem failed`);
+            showProgressIcon(2, false)
+        }
     });
 
     connection.on("onReport", function (message) {
         writeLog(message);
-        let data = {
-            browerConnectionId: connectionId,
-            rootFilename: $("#control_MainAssembly").val(),
-            isSimplified: true
-        }
-        $.ajax({
-            url: 'api/forge/designautomation/translations',
-            contentType: 'application/json',
-            data: JSON.stringify(data),
-            type: 'POST',
-            success: function () {
-                writeLog(`Started translating simplified model`);
-            }
-        });
     });
 
     connection.on("onTranslated", async function (message) {

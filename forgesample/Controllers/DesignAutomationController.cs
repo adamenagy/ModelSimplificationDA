@@ -550,16 +550,16 @@ namespace forgeSample.Controllers
             System.Diagnostics.Debug.WriteLine($"OnComplete, id = {id}, outputFile = {outputFile}");
             try
             {
-                // your webhook should return immediately! we can use Hangfire to schedule a job
                 JObject bodyJson = JObject.Parse((string)body.ToString());
-                await _hubContext.Clients.Client(id).SendAsync("onComplete", bodyJson.ToString());
-
+                // your webhook should return immediately! we can use Hangfire to schedule a job
                 var client = new RestClient(bodyJson["reportUrl"].Value<string>());
                 var request = new RestRequest(string.Empty);
 
                 byte[] bs = client.DownloadData(request);
                 string report = System.Text.Encoding.Default.GetString(bs);
                 await _hubContext.Clients.Client(id).SendAsync("onReport", report);
+               
+                await _hubContext.Clients.Client(id).SendAsync("onComplete", bodyJson.ToString());
             }
             catch (Exception e) 
             {
