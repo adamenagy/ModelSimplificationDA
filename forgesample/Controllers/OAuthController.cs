@@ -65,7 +65,7 @@ namespace forgeSample.Controllers
         /// </summary>
         public static async Task<dynamic> GetInternalAsync()
         {
-            if (InternalToken == null || InternalToken.ExpiresAt < DateTime.UtcNow)
+            //if (InternalToken == null || InternalToken.ExpiresAt < DateTime.UtcNow)
             {
                 InternalToken = await Get2LeggedTokenAsync(new Scope[] { Scope.BucketCreate, Scope.BucketRead, Scope.BucketDelete, Scope.DataRead, Scope.DataWrite, Scope.DataCreate, Scope.CodeAll });
                 InternalToken.ExpiresAt = DateTime.UtcNow.AddSeconds(InternalToken.expires_in);
