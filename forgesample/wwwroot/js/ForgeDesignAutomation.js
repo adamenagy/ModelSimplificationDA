@@ -324,9 +324,8 @@ function startWorkitem() {
         isDefault: $("#fileName").text() == "default",
         options: getOptions()
     };
-    writeLog(data);
     startConnection(function () {
-        writeLog('Starting workitem...');
+        writeLog('Starting workitem with data: \n' + JSON.stringify(data, null, 2));
         $.ajax({
             url: 'api/forge/designautomation/workitems',
             contentType: 'application/json',
@@ -365,6 +364,10 @@ function startConnection(onReady) {
 
     connection.on("onComplete", function (message) {
         writeLog(message);
+    });
+
+    connection.on("onReport", function (message) {
+        writeLog(message);
         let data = {
             browerConnectionId: connectionId,
             rootFilename: $("#control_MainAssembly").val(),
@@ -379,10 +382,6 @@ function startConnection(onReady) {
                 writeLog(`Started translating simplified model`);
             }
         });
-    });
-
-    connection.on("onReport", function (message) {
-        writeLog(message);
     });
 
     connection.on("onTranslated", async function (message) {
