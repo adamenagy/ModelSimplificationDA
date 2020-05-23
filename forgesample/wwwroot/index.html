@@ -55,6 +55,7 @@
             padding: 5px;
             border-radius: 5px;
             height: calc(100vh - 500px);
+            width: 100%;
             overflow: scroll;
             position: relative;
         }
@@ -68,6 +69,7 @@
             overflow: scroll;
             position: relative;
             display: none;
+            width: 100%;
         }
 
         .label {
@@ -78,10 +80,12 @@
         }
         .fill {
             height: 100%;
+            width: 100%;
         }
         .half {
             height: 50%;
             position: relative;
+            width: 100%;
         }
         .glyphicon-spin {
             -webkit-animation: spin 1000ms infinite linear;
@@ -161,12 +165,12 @@
                 </div>
             </div>
             <div class="col-sm-6" id="rightColumn">
-                <div class="row half">
+                <div class="half">
                     <div id="forgeViewer1" class="form-control"></div>
                     <div class="label">Original</div>
                     <div id="progressIcon1" class="glyphicon glyphicon-refresh glyphicon-spin"></div>
                 </div>
-                <div class="row half">
+                <div class="half">
                     <div id="forgeViewer2" class="form-control"></div>
                     <div class="label">Simplified</div>
                     <div id="progressIcon2" class="glyphicon glyphicon-refresh glyphicon-spin"></div>
