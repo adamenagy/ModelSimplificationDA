@@ -1,7 +1,7 @@
-﻿var viewer;
+﻿var viewers = [];
 var counter = 0;
 
-function launchViewer(urn, elementId) {
+function launchViewer(urn, elementId, id) {
     // To avoid showing previous versions of the model from the cache
     Autodesk.Viewing.endpoint.HTTP_REQUEST_HEADERS['If-Modified-Since'] = "Sat, 29 Oct 1994 19:43:31 GMT"
 
@@ -11,18 +11,18 @@ function launchViewer(urn, elementId) {
             getAccessToken: getForgeToken
         };
 
-        if (viewer) {
-            viewer.tearDown();
-            viewer.setUp(viewer.config);
+        if (viewers[id]) {
+            viewers[id].tearDown();
+            viewers[id].setUp(viewers[id].config);
 
-            await loadModels(urn)
+            await loadModels(urn, id)
 
             resolve()
         } else {
             Autodesk.Viewing.Initializer(options, async () => {
-                viewer = new Autodesk.Viewing.GuiViewer3D(document.getElementById(elementId), { extensions: ['Autodesk.DocumentBrowser'] });
-                viewer.start();
-                await loadModels(urn)
+                viewers[id] = new Autodesk.Viewing.GuiViewer3D(document.getElementById(elementId), { extensions: ['Autodesk.DocumentBrowser'] });
+                viewers[id].start();
+                await loadModels(urn, id)
 
                 resolve()
             });
@@ -30,26 +30,26 @@ function launchViewer(urn, elementId) {
     })
 }
 
-function loadModels(urn) {
+function loadModels(urn, id) {
     return new Promise(async (resolve, reject) => {       
         console.log('loadModels()');
 
         var documentId = 'urn:' + urn;
 
         console.log('before promise')
-        await loadModel(documentId)
+        await loadModel(documentId, id)
         console.log('after promise')
 
         resolve()
     })
 }
 
-function loadModel(documentId) {
+function loadModel(documentId, id) {
     return new Promise((resolve, reject) => {
         let onDocumentLoadSuccess = (doc) => {
             console.log(`onDocumentLoadSuccess() - counter = ${counter}`);
             var viewables = doc.getRoot().getDefaultGeometry();
-            viewer.loadDocumentNode(doc, viewables, {}).then(i => {
+            viewers[id].loadDocumentNode(doc, viewables, {}).then(i => {
                 resolve()
             });
         }

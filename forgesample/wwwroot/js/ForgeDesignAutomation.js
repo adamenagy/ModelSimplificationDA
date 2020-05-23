@@ -31,13 +31,25 @@ $(document).ready(function () {
 
     showConfigureButton();
 
+    showDefaultModel();
+
     startConnection();
 
     showOptions("#optionsContainer", false);
 });
 
+function showDefaultModel() {
+    jQuery.ajax({
+        url: 'api/forge/designautomation/defaultmodel',
+        method: 'GET',
+        success: function (data) {
+            launchViewer(data.urn, "forgeViewer1", 1)
+        }
+    });    
+}
+
 function uploadFile() {
-    console.log("upload file")
+    writeLog("Getting signed URL for upload")
     $.ajax({
         url: 'api/forge/designautomation/uploadurl?id=' + connectionId,
         success: function (res) {
@@ -58,24 +70,27 @@ function uploadFile() {
                     $('#inputFile').html('')
                 },
                 error: function (err, err2) {
+                    writeLog('File upload failed');
                     console.log(err)
                     $('#inputFile').html('')
                 }
             });
         },
         error: function (err, err2) {
+            writeLog('Could niot get signed URL');
             console.log(err)
             $('#inputFile').html('')
         }
     });
 }
 
-function  translateFile() {
+function translateFile() {
     showProgressIcon(1, true)
 
     let data = {
         browerConnectionId: connectionId,
-        rootFilename: $("#control_MainAssembly").val()
+        rootFilename: $("#control_MainAssembly").val(),
+        isSimplified: false
     }
 
     jQuery.ajax({
@@ -305,7 +320,9 @@ function startWorkitem() {
     showProgressIcon(2, true)
 
     let data = {
-        browerConnectionId: connectionId
+        browerConnectionId: connectionId,
+        isDefault: $("#fileName").text() == "default",
+        options: getOptions()
     };
     writeLog(data);
     startConnection(function () {
@@ -316,7 +333,7 @@ function startWorkitem() {
             data: JSON.stringify(data),
             type: 'POST',
             success: function (res) {
-                writeLog(`Workitems started: ${res.pngWorkItemId}, ${res.jsonWorkItemId}, ${res.zipWorkItemId}`);
+                writeLog(`Workitem started: ${res.zipWorkItemId}`);
             }
         });
     });
@@ -350,26 +367,34 @@ function startConnection(onReady) {
         writeLog(message);
         let data = {
             browerConnectionId: connectionId,
-            useCache: useCache
+            rootFilename: $("#control_MainAssembly").val(),
+            isSimplified: true
         }
         $.ajax({
             url: 'api/forge/designautomation/translations',
             contentType: 'application/json',
             data: JSON.stringify(data),
             type: 'POST',
-            success: function (res) {
-                writeLog(`Workitems started: ${res.pngWorkItemId}, ${res.jsonWorkItemId}, ${res.zipWorkItemId}`);
+            success: function () {
+                writeLog(`Started translating simplified model`);
             }
         });
     });
 
+    connection.on("onReport", function (message) {
+        writeLog(message);
+    });
+
     connection.on("onTranslated", async function (message) {
         writeLog(message);
-        
         let data = JSON.parse(message)
         let viewerNumber = (data.isSimplified) ? 2 : 1
-        let elementId = "forgeViewer" + viewerNumber
         showProgressIcon(viewerNumber, false)
-        launchViewer(data.urn, elementId)
+
+        if (data.status === "success") {
+            let elementId = "forgeViewer" + viewerNumber
+            
+            launchViewer(data.urn, elementId, viewerNumber)
+        }
     });
 }

@@ -62,8 +62,15 @@ namespace ShrinkWrapPlugin
 
         private T GetValue<T>(JObject obj, string name)
         {
-            JObject val = obj.GetValue(name) as JObject;
-            return val.GetValue("value").Value<T>();
+            try
+            {
+                JObject val = obj.GetValue(name) as JObject;
+                return val.GetValue("value").Value<T>();
+            }
+            catch
+            {
+                return default(T);
+            }
         }
 
         public void Run(Document doc)
@@ -77,15 +84,22 @@ namespace ShrinkWrapPlugin
 
             var map = CreateEnumMap();
 
-            JObject parameters = JObject.Parse(System.IO.File.ReadAllText("params.json"));
+            JObject parameters = JObject.Parse(System.IO.File.ReadAllText("input.json"));
 
-            string assemblyName = parameters.GetValue("assemblyName").Value<string>();
+            string assemblyName = GetValue<string>(parameters, "MainAssembly");
+            LogTrace($"MainAssembly = {assemblyName}");
+            if (assemblyName == null)
+            {
+                LogTrace("MainAssembly not specified. Exiting.");
+                return;
+            }
 
             using (new HeartBeat())
             {
-                if (parameters.ContainsKey("projectName"))
+                string projectName = GetValue<string>(parameters, "ProjectFile");
+                LogTrace($"ProjectFile = {projectName}");
+                if (projectName != null)
                 {
-                    string projectName = parameters.GetValue("projectName").Value<string>();
                     string [] projectFileNames = System.IO.Directory.GetFiles(filesDir, projectName, System.IO.SearchOption.AllDirectories);
                     if (projectFileNames.Length > 0)
                     {
@@ -111,6 +125,8 @@ namespace ShrinkWrapPlugin
                 string fullAssemblyPath = assemblyFileNames[0];
                 LogTrace("fullAssemblyPath = " + fullAssemblyPath);
 
+                string LOD = GetValue<string>(parameters, "LeveOfDetail");
+                LogTrace($"LeveOfDetail = {LOD}");
                 if (parameters.ContainsKey("LeveOfDetail"))
                 {
                     string[] LODs = inventorApplication.FileManager.GetLevelOfDetailRepresentations(fullAssemblyPath);
@@ -120,8 +136,6 @@ namespace ShrinkWrapPlugin
                         LogTrace(item);
                     }
 
-                    string LOD = parameters.GetValue("LeveOfDetail").Value<string>();
-                    LogTrace("Selected LOD: " + LOD);
                     fullAssemblyPath += "<" + LOD + ">";
                 }
                 LogTrace("fullAssemblyPath = " + fullAssemblyPath);
@@ -217,7 +231,7 @@ namespace ShrinkWrapPlugin
                     }
                     LogTrace("After ShrinkwrapComponents.Add");
 
-                    LogTrace("Before SuppressLinkToFile = true");
+                    LogTrace("Before SuppressLinkToFile");
                     try
                     {
                         if (parameters.ContainsKey("SuppressLinkToFile"))
@@ -229,10 +243,10 @@ namespace ShrinkWrapPlugin
                     {
                         LogTrace(ex.Message);
                     }
-                    LogTrace("After SuppressLinkToFile = true");
+                    LogTrace("After SuppressLinkToFile");
 
                     LogTrace("Saving part document");
-                    partDoc.SaveAs(System.IO.Path.Combine(currentDir, "output.ipt"), false);
+                    partDoc.SaveAs(System.IO.Path.Combine(filesDir, "output.ipt"), false);
                     LogTrace("Saved part document to output.ipt");
 
                     LogTrace("Saving to OBJ");

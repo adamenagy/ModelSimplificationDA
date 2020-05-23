@@ -30,6 +30,7 @@ using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Web;
 using System.Linq;
 using System.Threading.Tasks;
 using Activity = Autodesk.Forge.DesignAutomation.Model.Activity;
@@ -62,6 +63,8 @@ namespace forgeSample.Controllers
 
         public static string PersistentBucketKey { get { return NickName.ToLower() + "-persistent"; } }
 
+        public static string DefaultFileName { get { return "Engine MKII.iam.zip"; } }
+
         private const int UPLOAD_CHUNK_SIZE = 2 * 1024 * 1024; // 2 Mb
 
         public static string QualifiedBundleActivityName { get { return string.Format("{0}.{1}+{2}", NickName, kBundleActivityName, Alias); } }
@@ -86,18 +89,14 @@ namespace forgeSample.Controllers
         /// Get all Activities defined for this account
         /// </summary>
         [HttpGet]
-        [Route("api/forge/designautomation/activities")] 
-        public async Task<List<string>> GetDefinedActivities()
+        [Route("api/forge/designautomation/defaultmodel")] 
+        public IActionResult GetDefaultModel()
         {
-            System.Diagnostics.Debug.WriteLine("GetDefinedActivities");
+            System.Diagnostics.Debug.WriteLine("GetDefaultModel");
             // filter list of 
-            Page<string> activities = await _designAutomation.GetActivitiesAsync();
-            List<string> definedActivities = new List<string>();
-            foreach (string activity in activities.Data)
-                if (activity.StartsWith(NickName) && activity.IndexOf("$LATEST") == -1)
-                    definedActivities.Add(activity.Replace(NickName + ".", String.Empty));
+            string urn = string.Format("urn:adsk.objects:os.object:{0}/{1}", PersistentBucketKey, Uri.EscapeUriString(DefaultFileName));
 
-            return definedActivities;
+            return Ok(new { Urn = Base64Encode(urn) });
         }
 
         /// <summary>
@@ -122,6 +121,7 @@ namespace forgeSample.Controllers
         /// </summary>
         public static string Base64Decode(string base64Encoded)
         {
+            base64Encoded = base64Encoded.PadRight(base64Encoded.Length + (4 - base64Encoded.Length % 4) % 4, '=');
             byte[] data = System.Convert.FromBase64String(base64Encoded);
             return System.Text.Encoding.UTF8.GetString(data);
         }
@@ -183,6 +183,7 @@ namespace forgeSample.Controllers
             foreach (KeyValuePair<string, dynamic> item in new DynamicDictionaryItems(webhookRes.data)) 
             {
                 Guid hookId = new Guid(item.Value.hookId);
+                System.Diagnostics.Debug.WriteLine("Deleting webhook, hookId " + hookId);
                 await webhooks.DeleteHookAsync(DerivativeWebhookEvent.ExtractionFinished, hookId);
             }
            
@@ -191,7 +192,9 @@ namespace forgeSample.Controllers
                 OAuthController.GetAppSetting("FORGE_WEBHOOK_URL")
             );
             
+            System.Diagnostics.Debug.WriteLine("Creating webhook with workflowId = " +  WorkflowId);
             dynamic res = await webhooks.CreateHookAsync(DerivativeWebhookEvent.ExtractionFinished, callbackComplete, WorkflowId);
+            System.Diagnostics.Debug.WriteLine("Created webhook");
 
             return Ok();
         }
@@ -327,7 +330,7 @@ namespace forgeSample.Controllers
             }
 
             System.Diagnostics.Debug.WriteLine("CreateAppBundle");
-            string zipFileName = "UpdateIPTParam.bundle";
+            string zipFileName = "ShrinkWrapPlugin.bundle";
 
             // check if ZIP with bundle is here
             string packageZipPath = Path.Combine(LocalBundlesFolder, zipFileName + ".zip");
@@ -441,25 +444,32 @@ namespace forgeSample.Controllers
         {
             System.Diagnostics.Debug.WriteLine("StartWorkitem");
             string browerConnectionId = input["browerConnectionId"].Value<string>();
+            bool isDefault = input["isDefault"].Value<bool>();
+            if (isDefault)
+            {
+                input["options"]["MainAssembly"] = new JObject(new JProperty("value", DefaultFileName.Replace(".zip", "")));
+            }
 
             // OAuth token
             dynamic oauth = await OAuthController.GetInternalAsync();
 
-            string zipFileName = browerConnectionId + ".zip";
+            string inputBucket = isDefault ? PersistentBucketKey : TransientBucketKey;
+            string inputZip = isDefault ? DefaultFileName : browerConnectionId + ".zip";
+            string outputZip = browerConnectionId + ".min.zip";
             string zipWorkItemId = await CreateWorkItem(
-                input,
+                input["options"],
                 new Dictionary<string, string>() { { "Authorization", "Bearer " + oauth.access_token } },
                 browerConnectionId,
-                "outputZip",
-                zipFileName,
-                string.Format("https://developer.api.autodesk.com/oss/v2/buckets/{0}/objects/{1}", TransientBucketKey, zipFileName)
+                inputBucket,
+                inputZip,
+                outputZip
             );
 
             return Ok(new {
                 ZipWorkItemId = zipWorkItemId
             });
         }
-        private async Task<string> CreateWorkItem(JObject input, Dictionary<string, string> headers, string browerConnectionId, string outputName, string fileName, string url)
+        private async Task<string> CreateWorkItem(JToken input, Dictionary<string, string> headers, string browerConnectionId, string inputBucket, string inputName, string outputName)
         {
             input["output"] = outputName;
             XrefTreeArgument inputJsonArgument = new XrefTreeArgument()
@@ -467,9 +477,19 @@ namespace forgeSample.Controllers
                 Url = "data:application/json," + input.ToString(Formatting.None)
             };
 
+            string inputUrl = string.Format("https://developer.api.autodesk.com/oss/v2/buckets/{0}/objects/{1}", inputBucket, inputName);
+            string outputUrl = string.Format("https://developer.api.autodesk.com/oss/v2/buckets/{0}/objects/{1}", TransientBucketKey, outputName);
+
+            XrefTreeArgument inputArgument = new XrefTreeArgument()
+            {
+                Url = inputUrl,
+                Verb = Verb.Get,
+                Headers = headers
+            };
+
             XrefTreeArgument outputArgument = new XrefTreeArgument()
             {
-                Url = url,
+                Url = outputUrl,
                 Verb = Verb.Put,
                 Headers = headers
             };
@@ -478,15 +498,16 @@ namespace forgeSample.Controllers
                 "{0}/api/forge/callback/oncomplete?id={1}&outputFile={2}", 
                 OAuthController.GetAppSetting("FORGE_WEBHOOK_URL"), 
                 browerConnectionId, 
-                fileName);
+                outputName);
 
             WorkItem workItemSpec = new WorkItem()
             {
                 ActivityId = QualifiedBundleActivityName,
                 Arguments = new Dictionary<string, IArgument>()
                 {
+                    { "inputZip", inputArgument },        
                     { "inputJson", inputJsonArgument },
-                    { outputName, outputArgument },
+                    { "outputZip", outputArgument },
                     { "onComplete", new XrefTreeArgument { Verb = Verb.Post, Url = callbackComplete } }
                 }
             };
@@ -503,12 +524,13 @@ namespace forgeSample.Controllers
         public async Task<IActionResult> StartTranslation([FromBody]JObject input)
         {
             string browerConnectionId = input["browerConnectionId"].Value<string>();
-            string rootFilename = input["rootFilename"].Value<string>();
+            bool isSimplified = input["isSimplified"].Value<bool>();
+            string rootFilename = isSimplified ? "output.ipt" : input["rootFilename"].Value<string>();
 
             // OAuth token
             dynamic oauth = await OAuthController.GetInternalAsync();
 
-            string zipFileName = browerConnectionId + ".zip";
+            string zipFileName = browerConnectionId + ((isSimplified) ? ".min.zip" : ".zip");
             _ = TranslateFile(
                 string.Format("urn:adsk.objects:os.object:{0}/{1}", TransientBucketKey, zipFileName),
                 rootFilename,
@@ -537,7 +559,7 @@ namespace forgeSample.Controllers
 
                 byte[] bs = client.DownloadData(request);
                 string report = System.Text.Encoding.Default.GetString(bs);
-                await _hubContext.Clients.Client(id).SendAsync("onComplete", report);
+                await _hubContext.Clients.Client(id).SendAsync("onReport", report);
             }
             catch (Exception e) 
             {
@@ -559,9 +581,10 @@ namespace forgeSample.Controllers
             try
             {
                 string urn = body.resourceUrn;
+                System.Diagnostics.Debug.WriteLine("OnTranslated, urn = " + urn);
                 string fileName = Base64Decode(urn).Split("/")[1];
                 bool isSimplified = fileName.EndsWith(".min.zip");
-                string id = fileName.Replace(".zip", "");
+                string id = fileName.Replace(".zip", "").Replace(".min", "");
                 string status = body.payload.Payload.status;
 
                 // your webhook should return immediately! we can use Hangfire to schedule a job
@@ -572,7 +595,7 @@ namespace forgeSample.Controllers
             }
             catch (Exception e) 
             {
-                System.Diagnostics.Debug.WriteLine("OnComplete, e.Message = " + e.Message);
+                System.Diagnostics.Debug.WriteLine("OnTranslated, e.Message = " + e.Message);
             }
 
             // ALWAYS return ok (200)
