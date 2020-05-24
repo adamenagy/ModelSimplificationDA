@@ -26,6 +26,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.IO.Compression;
 using Newtonsoft.Json.Linq;
+using System.Linq;
 
 namespace ShrinkWrapPlugin
 {
@@ -69,7 +70,7 @@ namespace ShrinkWrapPlugin
             }
             catch
             {
-                return default(T);
+                return default;
             }
         }
 
@@ -98,7 +99,7 @@ namespace ShrinkWrapPlugin
             {
                 string projectName = GetValue<string>(parameters, "ProjectFile");
                 LogTrace($"ProjectFile = {projectName}");
-                if (projectName != null)
+                if (projectName != default && projectName != "")
                 {
                     string [] projectFileNames = System.IO.Directory.GetFiles(filesDir, projectName, System.IO.SearchOption.AllDirectories);
                     if (projectFileNames.Length > 0)
@@ -125,18 +126,25 @@ namespace ShrinkWrapPlugin
                 string fullAssemblyPath = assemblyFileNames[0];
                 LogTrace("fullAssemblyPath = " + fullAssemblyPath);
 
-                string LOD = GetValue<string>(parameters, "LeveOfDetail");
-                LogTrace($"LeveOfDetail = {LOD}");
-                if (parameters.ContainsKey("LeveOfDetail"))
+                string LOD = GetValue<string>(parameters, "LevelOfDetail");
+                LogTrace($"LevelOfDetail = {LOD}");
+                if (LOD != default && LOD != "")
                 {
                     string[] LODs = inventorApplication.FileManager.GetLevelOfDetailRepresentations(fullAssemblyPath);
-                    LogTrace("Available LODs:");
-                    foreach (var item in LODs)
-                    {
-                        LogTrace(item);
-                    }
 
-                    fullAssemblyPath += "<" + LOD + ">";
+                    if (LODs.Contains<string>(LOD))
+                    {
+                        fullAssemblyPath += "<" + LOD + ">";
+                    }
+                    else
+                    {
+                        LogTrace($"Assembly does not have a LevelOfDetail named {LOD}");
+                        LogTrace("Available LODs:");
+                        foreach (var item in LODs)
+                        {
+                            LogTrace(item);
+                        }
+                    }
                 }
                 LogTrace("fullAssemblyPath = " + fullAssemblyPath);
                 AssemblyDocument asmDoc = inventorApplication.Documents.Open(fullAssemblyPath, true) as AssemblyDocument;
@@ -236,7 +244,7 @@ namespace ShrinkWrapPlugin
                     {
                         if (parameters.ContainsKey("SuppressLinkToFile"))
                         { 
-                            SWComp.SuppressLinkToFile = parameters.GetValue("SuppressLinkToFile").Value<bool>();
+                            SWComp.SuppressLinkToFile = GetValue<bool>(parameters, "SuppressLinkToFile");
                         }
                     }
                     catch (Exception ex)
@@ -249,9 +257,13 @@ namespace ShrinkWrapPlugin
                     partDoc.SaveAs(System.IO.Path.Combine(filesDir, "output.ipt"), false);
                     LogTrace("Saved part document to output.ipt");
 
-                    LogTrace("Saving to OBJ");
-                    partDoc.SaveAs(System.IO.Path.Combine(currentDir, "outputObjZip", "output.obj"), true);
-                    LogTrace("Saved to OBJ named output.obj");
+                    bool createObj = GetValue<bool>(parameters, "CreateObj");
+                    if (createObj == true)
+                    {
+                        LogTrace("Saving to OBJ");
+                        partDoc.SaveAs(System.IO.Path.Combine(currentDir, "outputObjZip", "output.obj"), true);
+                        LogTrace("Saved to OBJ named output.obj");
+                    }
                 }
                 catch (Exception ex)
                 {
