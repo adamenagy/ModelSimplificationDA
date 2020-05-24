@@ -173,7 +173,6 @@ namespace forgeSample.Controllers
 
                 System.Diagnostics.Debug.WriteLine("Translating " + fileName);
                 _ = TranslateFile(objectId, fileName.Replace(".zip", ""));
-            
             } 
 
             DerivativeWebhooksApi webhooks = new DerivativeWebhooksApi(); 
@@ -306,15 +305,7 @@ namespace forgeSample.Controllers
             DerivativesApi derivative = new DerivativesApi();
             derivative.Configuration.AccessToken = oauth.access_token;
 
-            try
-            {
-                dynamic res = await derivative.TranslateAsync(job, true);
-            } 
-            catch (Exception ex)
-            {
-                 System.Diagnostics.Debug.WriteLine(ex.Message);
-            }
-            
+            dynamic res = await derivative.TranslateAsync(job, true);
         }
 
         /// <summary>
@@ -531,11 +522,20 @@ namespace forgeSample.Controllers
             dynamic oauth = await OAuthController.GetInternalAsync();
 
             string zipFileName = browerConnectionId + ((isSimplified) ? ".min.zip" : ".zip");
-            _ = TranslateFile(
-                string.Format("urn:adsk.objects:os.object:{0}/{1}", TransientBucketKey, zipFileName),
-                rootFilename,
-                WorkflowId
-            );
+
+            try
+            {
+                await TranslateFile(
+                    string.Format("urn:adsk.objects:os.object:{0}/{1}", TransientBucketKey, zipFileName),
+                    rootFilename,
+                    WorkflowId
+                );
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+           
 
             return Ok();
         }
