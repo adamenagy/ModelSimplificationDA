@@ -102,27 +102,25 @@ function translateFile() {
             writeLog('Translating file... ');
         },
         error: function (res) {
-            writeLog('Failed to start translation');
+            writeLog('Failed to start translation: ' + res.responseText);
         }
     });    
 }
 
 
-function showOptions(controlId, isFileOptions) {
+function showOptions(controlId, isForDialog) {
     let optionsContainer = $(controlId)
     optionsContainer.html('')
     optionsContainer.css('display', 'block')
 
     $.getJSON('params.json', function(params) {
         $.each(params, function(param, data) {
-            if  (isFileOptions) {
+            if (!data.isForDialog ^ isForDialog) {
                 switch (data.type) {
                     case 'text':
                         optionsContainer.append(createTextControl(param, data, false))
                         break;
-                }
-            } else {
-                switch (data.type) {
+
                     case 'boolean':
                         optionsContainer.append(createCheckboxControl(param, data))
                         break;
@@ -265,7 +263,7 @@ function createAppBundleActivity() {
     startConnection(function () {
         writeLog("Uploading sample files");
         uploadSourceFiles()
-        writeLog("Defining appbundle and activity for " + $('#engines').val());
+        writeLog("Defining appbundle, activity and webhook");
         $("#defineActivityModal").modal('toggle');
         createAppBundle(function () {
             createActivity()
