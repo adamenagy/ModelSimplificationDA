@@ -104,7 +104,7 @@ namespace forgeSample.Controllers
         /// </summary>
         private string CommandLine()
         {
-            return $"$(engine.path)\\InventorCoreConsole.exe /al $(appbundles[{kBundleActivityName}].path)";
+            return $"$(engine.path)\\InventorCoreConsole.exe /al \"$(appbundles[{kBundleActivityName}].path)\"";
         }
 
         /// <summary>
