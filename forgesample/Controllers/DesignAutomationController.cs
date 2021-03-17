@@ -73,7 +73,7 @@ namespace forgeSample.Controllers
         // Design Automation v3 API
         DesignAutomationClient _designAutomation;
 
-        public const string kEngineName = "Autodesk.Inventor+24";
+        public const string kEngineName = "Autodesk.Inventor+2021";
         public const string kBundleActivityName = "SimplifyModel";
         //public const string kOutputFileName = "shelves.iam.zip";
 
