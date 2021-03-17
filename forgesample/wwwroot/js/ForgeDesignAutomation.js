@@ -342,6 +342,12 @@ function writeLog(text) {
   elem.scrollTop = elem.scrollHeight;
 }
 
+function writeLogUrl(text, url) {
+    $('#outputlog').append('<a href="' + url + '" style="border-top: 1px dashed #C0C0C0">' + text + '</a>');
+    var elem = document.getElementById('outputlog');
+    elem.scrollTop = elem.scrollHeight;
+}
+
 var connection;
 var connectionId;
 
@@ -386,6 +392,11 @@ function startConnection(onReady) {
 
     connection.on("onReport", function (message) {
         writeLog(message);
+    });
+
+    connection.on("onUrl", function (message) {
+        var json = JSON.parse(message);
+        writeLogUrl(json.text, json.url);
     });
 
     connection.on("onTranslated", async function (message) {

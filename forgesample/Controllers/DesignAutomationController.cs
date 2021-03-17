@@ -409,7 +409,8 @@ namespace forgeSample.Controllers
                     {
                         { "inputZip", new Parameter() { Description = "input zip", LocalName = "files", Ondemand = false, Required = true, Verb = Verb.Get, Zip = true } },
                         { "inputJson", new Parameter() { Description = "input json", LocalName = "input.json", Ondemand = false, Required = true, Verb = Verb.Get, Zip = false } },
-                        { "outputZip", new Parameter() { Description = "output zip file", LocalName = "files", Ondemand = false, Required = false, Verb = Verb.Put, Zip = true } }
+                        { "outputZip", new Parameter() { Description = "output zip file", LocalName = "files", Ondemand = false, Required = false, Verb = Verb.Put, Zip = true } },
+                        { "outputRfa", new Parameter() { Description = "output zip file", LocalName = "output.rfa", Ondemand = false, Required = false, Verb = Verb.Put, Zip = false } }
                     }
                 };
                 Activity newActivity = await _designAutomation.CreateActivityAsync(activitySpec);
@@ -440,6 +441,7 @@ namespace forgeSample.Controllers
             {
                 input["options"]["MainAssembly"] = new JObject(new JProperty("value", DefaultFileName.Replace(".zip", "")));
             }
+            bool createRfa = input["options"]["CreateRfa"]["value"].Value<bool>();
 
             // OAuth token
             dynamic oauth = await OAuthController.GetInternalAsync();
@@ -447,20 +449,22 @@ namespace forgeSample.Controllers
             string inputBucket = isDefault ? PersistentBucketKey : TransientBucketKey;
             string inputZip = isDefault ? DefaultFileName : browerConnectionId + ".zip";
             string outputZip = browerConnectionId + ".min.zip";
+            string outputRfa = createRfa ? browerConnectionId + ".rfa" : null;
             string zipWorkItemId = await CreateWorkItem(
                 input["options"],
                 new Dictionary<string, string>() { { "Authorization", "Bearer " + oauth.access_token } },
                 browerConnectionId,
                 inputBucket,
                 inputZip,
-                outputZip
+                outputZip,
+                outputRfa
             );
 
             return Ok(new {
                 ZipWorkItemId = zipWorkItemId
             });
         }
-        private async Task<string> CreateWorkItem(JToken input, Dictionary<string, string> headers, string browerConnectionId, string inputBucket, string inputName, string outputName)
+        private async Task<string> CreateWorkItem(JToken input, Dictionary<string, string> headers, string browerConnectionId, string inputBucket, string inputName, string outputName, string outputRfaName)
         {
             input["output"] = outputName;
             XrefTreeArgument inputJsonArgument = new XrefTreeArgument()
@@ -470,6 +474,7 @@ namespace forgeSample.Controllers
 
             string inputUrl = string.Format("https://developer.api.autodesk.com/oss/v2/buckets/{0}/objects/{1}", inputBucket, inputName);
             string outputUrl = string.Format("https://developer.api.autodesk.com/oss/v2/buckets/{0}/objects/{1}", TransientBucketKey, outputName);
+            string outputRfaUrl = string.Format("https://developer.api.autodesk.com/oss/v2/buckets/{0}/objects/{1}", TransientBucketKey, outputRfaName);
 
             XrefTreeArgument inputArgument = new XrefTreeArgument()
             {
@@ -485,11 +490,24 @@ namespace forgeSample.Controllers
                 Headers = headers
             };
 
+            XrefTreeArgument outputRfaArgument = new XrefTreeArgument()
+            {
+                Url = outputRfaUrl,
+                Verb = Verb.Put,
+                Headers = headers
+            };
+
             string callbackComplete = string.Format(
-                "{0}/api/forge/callback/oncomplete?id={1}&outputFile={2}", 
+                "{0}/api/forge/callback/oncomplete?id={1}&outputFile={2}&outputRfaFile={3}", 
                 OAuthController.GetAppSetting("FORGE_WEBHOOK_URL"), 
                 browerConnectionId, 
-                outputName);
+                outputName,
+                outputRfaName);
+
+            XrefTreeArgument callbackArgument = new XrefTreeArgument { 
+                Verb = Verb.Post, 
+                Url = callbackComplete 
+            };
 
             WorkItem workItemSpec = new WorkItem()
             {
@@ -499,9 +517,15 @@ namespace forgeSample.Controllers
                     { "inputZip", inputArgument },        
                     { "inputJson", inputJsonArgument },
                     { "outputZip", outputArgument },
-                    { "onComplete", new XrefTreeArgument { Verb = Verb.Post, Url = callbackComplete } }
+                    { "onComplete", callbackArgument }
                 }
             };
+
+            if (outputRfaName != null)
+            {
+                workItemSpec.Arguments.Add("outputRfa", outputRfaArgument);
+            }
+
             WorkItemStatus workItemStatus = await _designAutomation.CreateWorkItemAsync(workItemSpec);
 
             return workItemStatus.Id;
@@ -545,9 +569,9 @@ namespace forgeSample.Controllers
         /// </summary>
         [HttpPost]
         [Route("/api/forge/callback/oncomplete")]
-        public async Task<IActionResult> OnComplete(string id, string outputFile, [FromBody]dynamic body)
+        public async Task<IActionResult> OnComplete(string id, string outputFile, string outputRfaFile, [FromBody]dynamic body)
         {
-            System.Diagnostics.Debug.WriteLine($"OnComplete, id = {id}, outputFile = {outputFile}");
+            System.Diagnostics.Debug.WriteLine($"OnComplete, id = {id}, outputFile = {outputFile}, outputRfaFile = {outputRfaFile}");
             try
             {
                 JObject bodyJson = JObject.Parse((string)body.ToString());
@@ -560,6 +584,20 @@ namespace forgeSample.Controllers
                 await _hubContext.Clients.Client(id).SendAsync("onReport", report);
                
                 await _hubContext.Clients.Client(id).SendAsync("onComplete", bodyJson.ToString());
+
+                // If we got a reasonable file name
+                if (outputRfaFile != null) 
+                {
+                    dynamic oauth = await OAuthController.GetInternalAsync();
+
+                    ObjectsApi objects = new ObjectsApi();
+                    objects.Configuration.AccessToken = oauth.access_token;
+
+                    dynamic signedUrl = await objects.CreateSignedResourceAsyncWithHttpInfo(TransientBucketKey, outputRfaFile, new PostBucketsSigned(30), "read");
+                    
+                    string url = signedUrl.Data.signedUrl;
+                    await _hubContext.Clients.Client(id).SendAsync("onUrl", "{ \"url\": \"" + url + "\", \"text\": \"Download output.rfa\" }");
+                }
             }
             catch (Exception e) 
             {

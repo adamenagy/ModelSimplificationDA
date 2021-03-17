@@ -100,5 +100,9 @@
   "RemovePartsSize": {
     "type": "number",
     "value": 1
+  },
+  "CreateRfa": {
+    "type": "boolean",
+    "value": false
   }
 }
