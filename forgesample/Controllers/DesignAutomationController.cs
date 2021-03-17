@@ -69,7 +69,7 @@ namespace forgeSample.Controllers
 
         public static string QualifiedBundleActivityName { get { return string.Format("{0}.{1}+{2}", NickName, kBundleActivityName, Alias); } }
         /// Alias for the app (e.g. DEV, STG, PROD). This value may come from an environment variable
-        public static string Alias { get { return "dev"; } }
+        public static string Alias { get { return "prod"; } }
         // Design Automation v3 API
         DesignAutomationClient _designAutomation;
 
