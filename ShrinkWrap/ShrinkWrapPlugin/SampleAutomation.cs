@@ -74,6 +74,48 @@ namespace ShrinkWrapPlugin
             }
         }
 
+        BIMComponent getBIMComponent(Document doc)
+        {
+            BIMComponent bimComponent = null;
+            var docType = doc.DocumentType;
+            if (docType == DocumentTypeEnum.kAssemblyDocumentObject)
+            {
+                AssemblyDocument _doc = doc as AssemblyDocument;
+                bimComponent = _doc.ComponentDefinition.BIMComponent;
+            }
+            else if (docType == DocumentTypeEnum.kPartDocumentObject)
+            {
+                PartDocument _doc = doc as PartDocument;
+                bimComponent = _doc.ComponentDefinition.BIMComponent;
+            }
+            else
+            {
+                Trace.TraceInformation("NOT supported document type.");
+            }
+
+            return bimComponent;
+        }
+
+        public void ExportRFA(Document doc, string filePath)
+        {
+            LogTrace("Exporting RFA file.");
+
+            BIMComponent bimComponent = getBIMComponent(doc);
+            if (bimComponent == null)
+            {
+                LogTrace("Could not export RFA file.");
+                return;
+            }
+
+            NameValueMap nvm = inventorApplication.TransientObjects.CreateNameValueMap();
+            string currentDir = System.IO.Directory.GetCurrentDirectory();
+            var reportFileName = System.IO.Path.Combine(currentDir, "Report.html");
+            nvm.Add("ReportFileName", reportFileName);
+            bimComponent.ExportBuildingComponentWithOptions(filePath, nvm);
+
+            LogTrace("Exported RFA file.");
+        }
+
         public void Run(Document doc)
         {
             LogTrace("Run()");
@@ -263,6 +305,15 @@ namespace ShrinkWrapPlugin
                         LogTrace("Saving to OBJ");
                         partDoc.SaveAs(System.IO.Path.Combine(currentDir, "outputObjZip", "output.obj"), true);
                         LogTrace("Saved to OBJ named output.obj");
+                    }
+
+                    bool createRfa = GetValue<bool>(parameters, "CreateRfa");
+                    if (createRfa == true)
+                    {
+                        LogTrace("Saving to RFA");
+                        string rfaPath = System.IO.Path.Combine(currentDir, "output.rfa");
+                        ExportRFA(partDoc as Document, rfaPath);
+                        LogTrace("Saved to RFA named output.rfa");
                     }
                 }
                 catch (Exception ex)
